@@ -5,7 +5,12 @@ This fork includes a custom GitHub Actions workflow that builds RustDesk clients
 ## Default server
 
 - ID server: `rd.sgohome.us`
-- Public key: read from your RustDesk server file:
+- Public key source priority:
+  1. Repository secret: `RUSTDESK_RS_PUB_KEY`
+  2. Manual workflow input: `public_key`
+  3. If both are empty, the workflow stops before building and tells you to fetch the key.
+
+The key comes from your RustDesk server file:
 
 ```bash
 cat /mnt/user/appdata/rustdesk-server/data/id_ed25519.pub
@@ -26,9 +31,9 @@ pub const RS_PUB_KEY: &str = "...";
 
 with your `rd.sgohome.us` server and your server public key.
 
-## Recommended setup
+## Recommended setup: save the key once
 
-Create a repository secret:
+Create a repository secret once:
 
 ```text
 RUSTDESK_RS_PUB_KEY
@@ -40,7 +45,13 @@ Value:
 content of /mnt/user/appdata/rustdesk-server/data/id_ed25519.pub
 ```
 
-This avoids typing the key every time you run the workflow.
+After this secret exists, you do not need to paste the key again when running the workflow. Leave `public_key` empty.
+
+## First run without a saved key
+
+If you have not created `RUSTDESK_RS_PUB_KEY` yet, paste the key into the `public_key` field when you run the workflow.
+
+This is only a fallback. The better long-term setup is to save the repository secret.
 
 ## Run the workflow
 
