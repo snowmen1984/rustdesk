@@ -9,7 +9,7 @@ on:
         default: "rd.sgohome.us"
         type: string
       public_key:
-        description: "Server public key from id_ed25519.pub. Leave empty if repository secret RUSTDESK_RS_PUB_KEY is set."
+        description: "Fallback only: paste id_ed25519.pub only if secret RUSTDESK_RS_PUB_KEY is not set"
         required: false
         type: string
       build_windows:
@@ -59,7 +59,28 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
 jobs:
+  validate-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate RustDesk custom server key
+        env:
+          KEY_FROM_SECRET: ${{ secrets.RUSTDESK_RS_PUB_KEY }}
+          KEY_FROM_INPUT: ${{ inputs.public_key }}
+          ID_SERVER: ${{ inputs.id_server }}
+        run: |
+          if [ -n "$KEY_FROM_SECRET" ]; then
+            echo "[OK] Using repository secret RUSTDESK_RS_PUB_KEY for $ID_SERVER."
+            exit 0
+          fi
+          if [ -n "$KEY_FROM_INPUT" ]; then
+            echo "[OK] Repository secret RUSTDESK_RS_PUB_KEY is not set; using public_key workflow input for $ID_SERVER."
+            exit 0
+          fi
+          echo "::error::No RustDesk server public key configured. Add repository secret RUSTDESK_RS_PUB_KEY, or paste /mnt/user/appdata/rustdesk-server/data/id_ed25519.pub into the public_key input when running this workflow."
+          exit 1
+
   generate-bridge:
+    needs: validate-config
     uses: ./.github/workflows/bridge.yml
 
   build-windows-x64:
